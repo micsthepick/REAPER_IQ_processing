@@ -1,0 +1,208 @@
+desc:IQ based FM demod (stereo)
+
+import cookdsp.jsfx-inc
+
+slider1:200000<25000, 250000>RBW
+slider2:18000<200, 20000>ABW
+slider3:0<-90, 0, 0.1>Gain (dB)
+slider4:1<0, 2>Width
+
+@init
+function analytic_bp(freq_c, freq_lpf, q) (
+    this.omega_0 = freq_c*2*$pi/srate;
+    this.omega_1 = freq_lpf*2*$pi/srate;
+    c0 = cos(this.omega_0);
+    c20 = cos(2*this.omega_0);
+    c1 = cos(this.omega_1);
+    s0 = sin(this.omega_0);
+    s20 = sin(2*this.omega_0);
+    s1 = sin(this.omega_1);
+    this.alpha = sin(this.omega_1) / q * 0.5;
+    d = 1 / (1 + this.alpha); 
+    c = (1 - c1);
+    cd = c*d;
+    this.a0r = cd * 0.5;
+    this.a1r = cd * c0;
+    this.a1i = cd * s0;
+    this.a2r = cd * 0.5 * c20;
+    this.a2i = cd * 0.5 * s20;
+    this.b1r = -2 * c1 * d * c0;
+    this.b1i = -2 * c1 * d * s0;
+    this.b2r = (1 - this.alpha) * d * c20;
+    this.b2i = (1 - this.alpha) * d * s20; 
+);
+
+
+function analytic_bp_do(inr, ini) (
+    this.y0r = (
+        this.a0r * inr + this.a1r * this.x1r - this.a1i * this.x1i + this.a2r * this.x2r - this.a2i * this.x2i
+        - this.b1r * this.y1r + this.b1i * this.y1i - this.b2r * this.y2r + this.b2i * this.y2i);
+    this.y0i = (
+        this.a0r * ini + this.a1i * this.x1r + this.a1r * this.x1i + this.a2i * this.x2r + this.a2r * this.x2i
+        - this.b1i * this.y1r - this.b1r * this.y1i - this.b2i * this.y2r - this.b2r * this.y2i);
+    
+    this.x2r = this.x1r;
+    this.x2i = this.x1i;
+    this.x1r = inr;
+    this.x1i = ini;
+    this.y2r = this.y1r;
+    this.y2i = this.y1i;
+    this.y1r = this.y0r;
+    this.y1i = this.y0i;
+);
+
+beta = 1-exp(-2*$pi*16/srate);
+stereo_F0 = 19000;
+twopi = $pi*2;
+min_f = stereo_F0-25;
+max_f = stereo_F0+25;
+phd_max = 2*$pi*max_f/srate;
+phd_min = 2*$pi*min_f/srate;
+a = sqrt(2);
+lpL.butlp(slider1);
+lpL1.butlp(slider1);
+lpL2.butlp(slider1);
+lpL3.butlp(slider1);
+lpL4.butlp(slider1);
+lpL5.butlp(slider1);
+lpL6.butlp(slider1);
+lpL7.butlp(slider1);
+lpR.butlp(slider1);
+lpR1.butlp(slider1);
+lpR2.butlp(slider1);
+lpR3.butlp(slider1);
+lpR4.butlp(slider1);
+lpR5.butlp(slider1);
+lpR6.butlp(slider1);
+lpR7.butlp(slider1);
+hpL.buthp(30);
+hpL1.buthp(30);
+hpR.buthp(30);
+hpR1.buthp(30);
+lpM.butlp(slider2);
+lpM1.butlp(slider2);
+lpM2.butlp(slider2);
+lpM3.butlp(slider2);
+lpM4.butlp(slider2);
+lpM5.butlp(slider2);
+lpM6.butlp(slider2);
+lpM7.butlp(slider2);
+lpS.butlp(slider2);
+lpS1.butlp(slider2);
+lpS2.butlp(slider2);
+lpS3.butlp(slider2);
+lpS4.butlp(slider2);
+lpS5.butlp(slider2);
+lpS6.butlp(slider2);
+lpS7.butlp(slider2);
+lpSC.biquad(Stereo_F0, a, 0);
+lpSC1.biquad(Stereo_F0, a, 0);
+lpSC2.biquad(Stereo_F0, a, 0);
+lpSC3.biquad(Stereo_F0, a, 0);
+NC.apass(Stereo_F0, 40, 0);
+NS.apass(stereo_F0, 40, 0);
+abp.analytic_bp(stereo_F0, 15, 1);
+abp1.analytic_bp(stereo_F0, 15, 1);
+Cx2B.bp(2*stereo_F0, 40);
+Cx2B1.bp(2*stereo_F0, 40);
+Cx2B2.bp(2*stereo_F0, 40);
+Cx2B3.bp(2*stereo_F0, 40);
+lp.lop(2*stereo_F0);
+hp.hip(2*stereo_f0);
+
+@slider
+lpL.butlp_set_freq(slider1);
+lpL1.butlp_set_freq(slider1);
+lpL2.butlp_set_freq(slider1);
+lpL3.butlp_set_freq(slider1);
+lpL4.butlp_set_freq(slider1);
+lpL5.butlp_set_freq(slider1);
+lpL6.butlp_set_freq(slider1);
+lpL7.butlp_set_freq(slider1);
+lpR.butlp_set_freq(slider1);
+lpR1.butlp_set_freq(slider1);
+lpR2.butlp_set_freq(slider1);
+lpR3.butlp_set_freq(slider1);
+lpR4.butlp_set_freq(slider1);
+lpR5.butlp_set_freq(slider1);
+lpR6.butlp_set_freq(slider1);
+lpR7.butlp_set_freq(slider1);
+lpM.butlp_set_freq(slider2);
+lpM1.butlp_set_freq(slider2);
+lpM2.butlp_set_freq(slider2);
+lpM3.butlp_set_freq(slider2);
+lpM4.butlp_set_freq(slider2);
+lpM5.butlp_set_freq(slider2);
+lpM6.butlp_set_freq(slider2);
+lpM7.butlp_set_freq(slider2);
+lpS.butlp_set_freq(slider2);
+lpS1.butlp_set_freq(slider2);
+lpS2.butlp_set_freq(slider2);
+lpS3.butlp_set_freq(slider2);
+lpS4.butlp_set_freq(slider2);
+lpS5.butlp_set_freq(slider2);
+lpS6.butlp_set_freq(slider2);
+lpS7.butlp_set_freq(slider2);
+gain = 2^(slider3/6)/$pi;
+
+@sample
+L = lpL7.butlp_do(
+    lpL6.butlp_do(
+    lpL5.butlp_do(
+    lpL4.butlp_do(
+    lpL3.butlp_do(
+    lpL2.butlp_do(
+    lpL1.butlp_do(
+    lpL.butlp_do(spl0))))))));
+R = lpR7.butlp_do(
+    lpR6.butlp_do(
+    lpR5.butlp_do(
+    lpR4.butlp_do(
+    lpR3.butlp_do(
+    lpR2.butlp_do(
+    lpR1.butlp_do(
+    lpR.butlp_do(spl1))))))));
+phase_diff = atan2(R*oldL-L*oldR, L*oldL+R*oldR);
+oldL = L;
+oldR = R;
+phase_diff_cs = 0.5*(phase_diff + NC.apass_do(phase_diff));
+noisy_carrier_new = phase_diff - phase_diff_cs;
+abp.analytic_bp_do(phase_diff, 0.0);
+abp1.analytic_bp_do(abp.y0r, abp.y0i);
+pha = atan2(abp1.y0i, abp1.y0r);
+ph += phd;
+ph > $pi ? ph -= twopi;
+ph < -$pi ? ph += twopi;
+phe = ph - pha;
+phe > $pi ? phe -= twopi;
+phe < -$pi ? phe += twopi;
+phd -= phe * beta;
+phd = max(min(phd, phd_max), phd_min);
+
+side = 2*phase_diff_cs*sin(2*ph);
+
+mid =
+    lpM7.butlp_do(
+    lpM6.butlp_do(
+    lpM5.butlp_do(
+    lpM4.butlp_do(
+    lpM3.butlp_do(
+    lpM2.butlp_do(
+    lpM1.butlp_do(
+    lpM.butlp_do(
+    phase_diff_cs))))))));
+side =
+    lpS7.butlp_do(
+    lpS6.butlp_do(
+    lpS5.butlp_do(
+    lpS4.butlp_do(
+    lpS3.butlp_do(
+    lpS2.butlp_do(
+    lpS1.butlp_do(
+    lpS.butlp_do(
+    side))))))));
+
+Lout = mid * (2-slider4) * 0.5 - side * slider4 * 0.5;
+Rout = mid * (2-slider4) * 0.5 + side * slider4 * 0.5;
+spl0 = hpL1.buthp_do(hpL.buthp_do(Lout * gain));
+spl1 = hpR1.buthp_do(hpR.buthp_do(Rout * gain));

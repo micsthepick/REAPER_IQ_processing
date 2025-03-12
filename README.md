@@ -2,8 +2,10 @@
 Processing of IQ data from a Software Defined Radio
 
 ## Prerequisites
-REAPER (or a JSFX host)
-an IQ recording or a setup that allows live IQ analysis: example GNURadio Companion app included!
+* REAPER (or a JSFX host)
+* an IQ recording or a setup that allows live IQ analysis: example GNURadio Companion app included!
+  - n.b. In order to listen to the output audio I ran reaper in WaveOut Mode at 384KHz and installed the optional ReaRoute ASIO driver and enabled that in the HiFi Cable, another way might be to use two audio cables both at 384KHz and ASIO4all, and finally to listen to the output cable, alternatively in macosx I've found that creating an aggregate device with blackhole (brew install blackhole-2ch or brew install blackhole-16ch) and the external speakers works quite well.
+* CookDSP Library (may be found at https://github.com/belangeo/cookdsp)
 
 ## The scripts so far:
 
