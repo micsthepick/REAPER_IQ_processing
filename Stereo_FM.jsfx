@@ -2,10 +2,12 @@ desc:IQ based FM demod (stereo)
 
 import cookdsp.jsfx-inc
 
-slider1:200000<25000, 250000>RBW
+slider1:200000<12500, 250000>RBW
 slider2:18000<200, 20000>ABW
 slider3:0<-90, 0, 0.1>Gain (dB)
 slider4:1<0, 2>Width
+slider5:0<-90, 0 , 0.1>Squelch
+slider6:20<5,160>HPF
 
 @init
 function analytic_bp(freq_c, freq_lpf, q) (
@@ -75,10 +77,10 @@ lpR4.butlp(slider1);
 lpR5.butlp(slider1);
 lpR6.butlp(slider1);
 lpR7.butlp(slider1);
-hpL.buthp(30);
-hpL1.buthp(30);
-hpR.buthp(30);
-hpR1.buthp(30);
+hpL.buthp(slider6);
+hpL1.buthp(slider6);
+hpR.buthp(slider6);
+hpR1.buthp(slider6);
 lpM.butlp(slider2);
 lpM1.butlp(slider2);
 lpM2.butlp(slider2);
@@ -127,6 +129,10 @@ lpR4.butlp_set_freq(slider1);
 lpR5.butlp_set_freq(slider1);
 lpR6.butlp_set_freq(slider1);
 lpR7.butlp_set_freq(slider1);
+hpL.buthp_set_freq(slider6);
+hpL1.buthp_set_freq(slider6);
+hpR.buthp_set_freq(slider6);
+hpR1.buthp_set_freq(slider6);
 lpM.butlp_set_freq(slider2);
 lpM1.butlp_set_freq(slider2);
 lpM2.butlp_set_freq(slider2);
@@ -144,6 +150,10 @@ lpS5.butlp_set_freq(slider2);
 lpS6.butlp_set_freq(slider2);
 lpS7.butlp_set_freq(slider2);
 gain = 2^(slider3/6)/$pi;
+sqlmult = exp(-2*$pi*2/srate);
+sqlmultb = 1-sqlmult;
+sqlmulta = 0.5*sqlmultb;
+sqldb = 2^(slider5/6);
 
 @sample
 L = lpL7.butlp_do(
@@ -162,6 +172,8 @@ R = lpR7.butlp_do(
     lpR2.butlp_do(
     lpR1.butlp_do(
     lpR.butlp_do(spl1))))))));
+dosql *= sqlmult;
+dosql += sqlmulta * sqrt(sqr(L) + sqr(R));
 phase_diff = atan2(R*oldL-L*oldR, L*oldL+R*oldR);
 oldL = L;
 oldR = R;
@@ -204,5 +216,11 @@ side =
 
 Lout = mid * (2-slider4) * 0.5 - side * slider4 * 0.5;
 Rout = mid * (2-slider4) * 0.5 + side * slider4 * 0.5;
-spl0 = hpL1.buthp_do(hpL.buthp_do(Lout * gain));
-spl1 = hpR1.buthp_do(hpR.buthp_do(Rout * gain));
+enable1 = (dosql > sqldb) ? srate/1000 : -2*srate/1000;
+enable2 += enable1;
+enable2 = min(3000, max(enable2, 0));
+enable3 = enable2 < 20 ? 0 : enable2 > 3000-20 ? 1 : enable3;
+enable *= sqlmultb;
+enable += enable3 * sqlmult;
+spl0 = hpL1.buthp_do(hpL.buthp_do(Lout * gain)) * enable;
+spl1 = hpR1.buthp_do(hpR.buthp_do(Rout * gain)) * enable;
