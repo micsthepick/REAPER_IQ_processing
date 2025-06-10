@@ -1,0 +1,93 @@
+desc:SSB from IQ
+
+import cookdsp.jsfx-inc
+
+slider1:gain_db=0<-150,12,1>gain (dB)
+slider2:mode=1<0,2,1{LSB,USB,DSB}>Mode
+slider3:bandwidth=1200<100,15000>cutoff
+slider4:freq=0<-1000,1000,0.25>Tune
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+function lp_setf(frequency)
+global (__memory_next, srate)
+local(i, memi, wf)
+(
+    memi = this.winbuf-1;
+    this.frequency = frequency;
+    i = -this.delay;
+    loop(this.delay*2+1,
+        (memi += 1)[] = (0.5+0.5*cos(i/this.delay*$pi))*sin(i*$pi*frequency/srate*2)/i;
+        i == 0 ? memi[] = 2*$pi*frequency/srate;
+        i += 1;
+    );
+    wf = mem_multiply_sum(-2, this.winbuf, this.delay*2+1);
+    memi = this.winbuf-1;
+    loop(this.delay*2+1,
+        (memi += 1)[] /= wf;
+    );
+);
+
+function lp_init(frequency, delay)
+global (__memory_next, srate)
+local(i, memi, wf)
+(
+    this.winbuf = __memory_next;
+    this.frequency = frequency;
+    this.delay = delay;
+    __memory_next += this.delay*2+1;
+    this.sampbuf = __memory_next;
+    __memory_next += this.delay*2+1;
+    this.lp_setf(frequency);
+);
+
+function lp_do(sample) (
+    mem_insert_shuffle(this.sampbuf, this.delay*2+1, sample);
+    mem_multiply_sum(this.winbuf, this.sampbuf, this.delay*2+1);
+);
+
+delay = 1000;
+
+last_gain=10^(gain_db/20);
+hilb1.hilbert();
+hilb2.hilbert();
+__memory_next += 8;
+filt1.lp_init(bandwidth, delay);
+filt2.lp_init(bandwidth, delay);
+filt3.lp_init(10, delay);
+pdc_bot_ch=0;
+pdc_top_ch=2;
+pdc_delay=delay*2;
+
+@slider
+next_gain=10^(gain_db/20);
+filt1.lp_setf(bandwidth);
+filt2.lp_setf(bandwidth);
+
+@block
+d_gain = (next_gain - last_gain)/samplesblock;
+
+@sample
+p += freq/srate;
+p -= floor(p);
+ph = p * 2 * $pi;
+Ifloat = cos(ph) * spl0 - sin(ph) * spl1;
+Qfloat = cos(ph) * spl1 + sin(ph) * spl0;
+Ifloat = spl0; Qfloat = spl1;
+hilb1.hilbert_do(Ifloat);
+hilb2.hilbert_do(Qfloat);
+usb = (hilb1.real + hilb2.imag);
+lsb = (hilb1.real - hilb2.imag);
+usbf = filt1.lp_do(usb);
+lsbf = filt2.lp_do(lsb);
+out = mode > 0.5 ? usbf : lsbf;
+mode > 1.5 ? (out += lsbf; out *= 0.5;);
+out -= filt3.lp_do(out);
+spl0 = spl1 = out;
+spl0 *= last_gain;
+spl1 *= last_gain;
+last_gain += d_gain;
