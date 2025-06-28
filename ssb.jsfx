@@ -5,7 +5,7 @@ import cookdsp.jsfx-inc
 slider1:gain_db=0<-150,12,1>gain (dB)
 slider2:mode=1<0,2,1{LSB,USB,DSB}>Mode
 slider3:bandwidth=1200<100,15000>cutoff
-slider4:freq=0<-1000,1000,0.25>Tune
+slider4:freq=0<-10000,10000,0.25>Tune
 
 in_pin:left input
 in_pin:right input
@@ -77,7 +77,7 @@ p -= floor(p);
 ph = p * 2 * $pi;
 Ifloat = cos(ph) * spl0 - sin(ph) * spl1;
 Qfloat = cos(ph) * spl1 + sin(ph) * spl0;
-Ifloat = spl0; Qfloat = spl1;
+//Ifloat = spl0; Qfloat = spl1;
 hilb1.hilbert_do(Ifloat);
 hilb2.hilbert_do(Qfloat);
 usb = (hilb1.real + hilb2.imag);
